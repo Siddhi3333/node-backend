@@ -1,81 +1,67 @@
-const express=require('express')
-const cors=require('cors')
-const bodyParser=require('body-parser')
-const mongoose=require('mongoose')
-const User = require('./models/User')
+const express = require('express');
+const cors = require('cors');
+const bodyParser = require('body-parser');
+const mongoose = require('mongoose');
+const User = require('./models/User');
+const Productroutes = require('./routes/Productroutes');
 
+const server = express();
+server.use(cors());
+server.use(bodyParser.json());
+server.use('/Product', Productroutes);
 
-const server =express()
-server.use(cors())
-server.use(bodyParser.json())
+// connect atlas cloud db
+mongoose.connect('mongodb+srv://siddhi:Siddhi%40384@cluster0.jwuh75l.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0')
+  .then(() => console.log('databse connection'))
+  .catch((err) => console.log(err));
 
-// database connection
-mongoose.connect('mongodb+srv://siddhi:Siddhi%40384@cluster0.jwuh75l.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0').then(()=>
-console.log('database connected'))
-.catch((err)=>
-console.log(err))
+server.post('/register', async (req, res) => {
+  try {
+    const { fullName, userName, age, password } = req.body;
+    const userObj = new User({ fullName, userName, age, password });
+    await userObj.save();
+    res.json({
+      status: true,
+      message: 'registration successfully'
+    });
+  } catch (err) {
+    res.json({
+      status: false,
+      message: `Error:${err}`
+    });
+  }
+});
 
-// create route for the data
-
-server.post('/register',async(req,res)=>{
-    try{
-        const UserExist=User.findOne({Email})
-        if(UserExist){
-            return res.json({
-                status:false,
-                message:'user already exist..!'
-            })
-        }
-        const {FullName,Email,Age,password}=req.body 
-        const userObj=new User({FullName,Email,Age,password})
-        await userObj.save()
-        res.json({
-             res:true,
-             message:'user added '
-        })
+server.post('/Login', async (req, res) => {
+  try {
+    const { userName, password } = req.body;
+    const userExist = await User.findOne({ userName });
+    if (!userExist) {
+      return res.json({
+        status: false,
+        message: 'user not found!!'
+      });
     }
-    catch(err){
-        res.json({
-             status:false,
-             message:`error:${err}`})
+    if (password !== userExist.password) {
+      return res.json({
+        status: false,
+        message: 'wrong password'
+      });
     }
-})
 
-//for login validation of user
+    res.json({
+      status: true,
+      message: 'login succefully'
+    });
 
-server.post('/login',async(req,res)=>{
-    try{
+  } catch (err) {
+    res.json({
+      status: false,
+      message: `Error:${err}`
+    });
+  }
+});
 
-        const {Email,password}=req.body 
-        
-        const UserExist= await User.findOne({Email})
-        if(!UserExist){
-            return res.json({
-                status:false,
-                message:'user does not exist..!'
-            })
-        }
-        if(password!==UserExist.password){
-            return res.json({
-                status:false,
-                message:'wrong password.!'
-            })
-        }
-        
-        res.json({
-             res:true,
-             message:'login successfull..! '
-        })
-    }
-    catch(err){
-        res.json({
-             status:false,
-             message:`error:${err}`})
-    }
-})
-
-
-
-server.listen(8055,()=>{
-    console.log('server listening on port 8055')
-})
+server.listen(8055, () => {
+  console.log('Server is listening on port 8055');
+});
